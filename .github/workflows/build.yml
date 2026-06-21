@@ -36,7 +36,7 @@ jobs:
           # 3. Create missing settings control script
           echo "include ':app'" > settings.gradle
 
-          # 4. FIX: Generate the configuration flags to activate AndroidX compatibility mapping
+          # 4. Generate the configuration flags to activate AndroidX compatibility mapping
           cat << 'EOF' > gradle.properties
           android.useAndroidX=true
           android.enableJetifier=true
@@ -95,4 +95,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Skull-Browser-Installer
-          path: app/build/outputs/apk/debug/*.apk
+          # FIXED PATH: Tells the runner to find the built file anywhere in the workspace outputs
+          path: "**/build/outputs/apk/debug/*.apk"
