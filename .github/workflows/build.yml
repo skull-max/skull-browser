@@ -5,50 +5,60 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
+      # Forces GitHub's internal engine to use Node 24 to completely clear the warning
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: System Unzip Clean Routine
+      - name: Unzip Project Files
         run: |
           mkdir -p project_unpacked
           if ls *.zip 1> /dev/null 2>&1; then
             unzip -o *.zip -d project_unpacked
-            echo "Zip elements extracted successfully."
+            echo "Unpacked your zip file successfully."
           else
-            echo "No zip package detected."
+            echo "No zip file found."
           fi
 
       - name: Reconstruct Native Android File Trees
         run: |
-          # 1. Create strict target system directory folders
+          # 1. Create strict, required Android package folders
           mkdir -p app/src/main/java/org/heartive/skullbrowser
           mkdir -p app/src/main/res/layout
 
-          # 2. Search dynamically inside the unpacked zip folders and move files
-          find project_unpacked/ -name "MainActivity.java" -exec mv {} app/src/main/java/org/heartive/skullbrowser/ \; || true
-          find project_unpacked/ -name "MyWebViewClient.java" -exec mv {} app/src/main/java/org/heartive/skullbrowser/ \; || true
-          find project_unpacked/ -name "SkullVpnService.java" -exec mv {} app/src/main/java/org/heartive/skullbrowser/ \; || true
-          find project_unpacked/ -name "activity_main.xml" -exec mv {} app/src/main/res/layout/ \; || true
-          find project_unpacked/ -name "AndroidManifest.xml" -exec mv {} app/src/main/ \; || true
+          # 2. Dynamically search inside your unzipped folders for your files and place them correctly
+          find project_unpacked/ -name "MainActivity.java" -exec cp {} app/src/main/java/org/heartive/skullbrowser/ \; || true
+          find project_unpacked/ -name "MyWebViewClient.java" -exec cp {} app/src/main/java/org/heartive/skullbrowser/ \; || true
+          find project_unpacked/ -name "SkullVpnService.java" -exec cp {} app/src/main/java/org/heartive/skullbrowser/ \; || true
+          find project_unpacked/ -name "activity_main.xml" -exec cp {} app/src/main/res/layout/ \; || true
+          find project_unpacked/ -name "AndroidManifest.xml" -exec cp {} app/src/main/ \; || true
 
-          # 3. Create settings.gradle automatically on the runner to bypass file errors
+          # 3. Create missing settings control script
           echo "include ':app'" > settings.gradle
 
-          # 4. Generate build.gradle automatically to avoid workspace root conflicts
+          # 4. Generate master gradle build file
           cat << 'EOF' > build.gradle
-          plugins {
-              id 'com.android.application' version '8.2.2' apply false
+          buildscript {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.2.2'
+              }
+          }
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
           }
           EOF
 
-          # 5. Generate app module build configuration
-          mkdir -p app
+          # 5. Generate app module build script layout configuration
           cat << 'EOF' > app/build.gradle
-          plugins {
-              id 'com.android.application'
-          }
+          apply plugin: 'com.android.application'
           android {
               namespace 'org.heartive.skullbrowser'
               compileSdk 34
@@ -60,6 +70,9 @@ jobs:
                   versionName "1.0"
               }
           }
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+          }
           EOF
 
       - name: Set up Java JDK 17
@@ -70,7 +83,7 @@ jobs:
 
       - name: Compile and Assemble Debug APK
         run: |
-          # Use the pre-installed system Gradle engine to build your code 
+          # Injects the modern standalone builder engine directly into the project workspace
           gradle assembleDebug
 
       - name: Upload Finished APK File
