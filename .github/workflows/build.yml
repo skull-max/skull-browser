@@ -26,17 +26,16 @@ jobs:
           mkdir -p app/src/main/java/org/heartive/skullbrowser
           mkdir -p app/src/main/res/layout
 
-          # 2. Dynamically search inside your unzipped folders for your Java and layout files
+          # 2. Dynamically search inside your unzipped folders for your Java and layout files ONLY
           find project_unpacked/ -name "MainActivity.java" -exec cp {} app/src/main/java/org/heartive/skullbrowser/ \; || true
           find project_unpacked/ -name "MyWebViewClient.java" -exec cp {} app/src/main/java/org/heartive/skullbrowser/ \; || true
           find project_unpacked/ -name "SkullVpnService.java" -exec cp {} app/src/main/java/org/heartive/skullbrowser/ \; || true
           find project_unpacked/ -name "activity_main.xml" -exec cp {} app/src/main/res/layout/ \; || true
 
-          # 3. FIXED MANIFEST ENGINE: Overwrites and forces a sterile, perfectly-mapped blueprint file
+          # 3. BULLETPROOF MANIFEST ENGINE: Writes a clean manifest from scratch (Completely ignoring the zip copy)
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://android.com"
-              package="org.heartive.skullbrowser">
+          <manifest xmlns:android="http://android.com">
 
               <uses-permission android:name="android.permission.INTERNET" />
               <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
