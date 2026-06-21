@@ -5,18 +5,36 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      # Administrative Bypass: Tells GitHub we acknowledge the Node upgrade
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+      # Fixes the Node.js version alert error instantly
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Unzip Project Files
+      - name: System Unzip Clean Routine
         run: |
-          if [ -f *.zip ]; then
-            unzip -o *.zip
-            echo "Project unpacked successfully."
+          mkdir -p project_unpacked
+          if ls *.zip 1> /dev/null 2>&1; then
+            unzip -o *.zip -d project_unpacked
+            echo "Zip elements extracted into temporary worker folder."
+          else
+            echo "No zip package detected in root directory."
           fi
+
+      - name: Reconstruct Native Android File Trees
+        run: |
+          # Create strict, sterile system directory folders
+          mkdir -p app/src/main/java/org/heartive/skullbrowser
+          mkdir -p app/src/main/res/layout
+
+          # Move your unpacked Java files into their proper package destination directory
+          find project_unpacked/ -name "*.java" -exec mv {} app/src/main/java/org/heartive/skullbrowser/ \; || true
+          
+          # Move your XML interface files into the core resource layout directory
+          find project_unpacked/ -name "activity_main.xml" -exec mv {} app/src/main/res/layout/ \; || true
+          
+          # Move your main system blueprint registration file into the root main folder
+          find project_unpacked/ -name "AndroidManifest.xml" -exec mv {} app/src/main/ \; || true
 
       - name: Set up Java JDK 17
         uses: actions/setup-java@v4
@@ -24,9 +42,14 @@ jobs:
           java-version: '17'
           distribution: 'zulu'
 
-      - name: Build Debug App Installer
+      - name: Initialize Android Command Tooling
         run: |
-          # Dynamically initializes a lightweight Android build wrapper
+          # Download and establish a lightweight background compilation engine wrapper
+          gradle help
+
+      - name: Compile and Assemble Debug APK
+        run: |
+          # Execute the core compiler build engine routine over the project tree
           gradle assembleDebug
 
       - name: Upload Finished APK File
