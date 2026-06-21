@@ -5,13 +5,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      # Forces GitHub's internal engine to use Node 24 to completely clear the warning
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Unzip Project Files
+      - name: System Unzip Clean Routine
         run: |
           mkdir -p project_unpacked
           if ls *.zip 1> /dev/null 2>&1; then
@@ -37,7 +36,13 @@ jobs:
           # 3. Create missing settings control script
           echo "include ':app'" > settings.gradle
 
-          # 4. Generate master gradle build file
+          # 4. FIX: Generate the configuration flags to activate AndroidX compatibility mapping
+          cat << 'EOF' > gradle.properties
+          android.useAndroidX=true
+          android.enableJetifier=true
+          EOF
+
+          # 5. Generate master gradle build file
           cat << 'EOF' > build.gradle
           buildscript {
               repositories {
@@ -56,7 +61,7 @@ jobs:
           }
           EOF
 
-          # 5. Generate app module build script layout configuration
+          # 6. Generate app module build script layout configuration
           cat << 'EOF' > app/build.gradle
           apply plugin: 'com.android.application'
           android {
@@ -83,7 +88,7 @@ jobs:
 
       - name: Compile and Assemble Debug APK
         run: |
-          # Injects the modern standalone builder engine directly into the project workspace
+          # Use the standalone builder engine to compile your code 
           gradle assembleDebug
 
       - name: Upload Finished APK File
