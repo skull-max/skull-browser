@@ -22,20 +22,21 @@ jobs:
 
       - name: Reconstruct Native Android File Trees
         run: |
-          # 1. Create strict, required Android package folders
+          # 1. Create sterile Android target folders
           mkdir -p app/src/main/java/org/heartive/skullbrowser
           mkdir -p app/src/main/res/layout
 
-          # 2. Dynamically search inside your unzipped folders for your Java and layout files ONLY
+          # 2. Extract your Java and layout files out of the zip archive pool
           find project_unpacked/ -name "MainActivity.java" -exec cp {} app/src/main/java/org/heartive/skullbrowser/ \; || true
           find project_unpacked/ -name "MyWebViewClient.java" -exec cp {} app/src/main/java/org/heartive/skullbrowser/ \; || true
           find project_unpacked/ -name "SkullVpnService.java" -exec cp {} app/src/main/java/org/heartive/skullbrowser/ \; || true
           find project_unpacked/ -name "activity_main.xml" -exec cp {} app/src/main/res/layout/ \; || true
 
-          # 3. BULLETPROOF MANIFEST ENGINE: Writes a clean manifest from scratch (Completely ignoring the zip copy)
+          # 3. Write a sterile manifest file from scratch
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://android.com">
+          <manifest xmlns:android="http://android.com"
+              package="org.heartive.skullbrowser">
 
               <uses-permission android:name="android.permission.INTERNET" />
               <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -69,16 +70,14 @@ jobs:
           </manifest>
           EOF
 
-          # 4. Create missing settings control script
+          # 4. Generate system environment configuration components
           echo "include ':app'" > settings.gradle
 
-          # 5. Generate the configuration flags to activate AndroidX compatibility mapping
           cat << 'EOF' > gradle.properties
           android.useAndroidX=true
           android.enableJetifier=true
           EOF
 
-          # 6. Generate master gradle build file
           cat << 'EOF' > build.gradle
           buildscript {
               repositories {
@@ -97,7 +96,6 @@ jobs:
           }
           EOF
 
-          # 7. Generate app module build script layout configuration
           cat << 'EOF' > app/build.gradle
           apply plugin: 'com.android.application'
           android {
@@ -116,6 +114,13 @@ jobs:
           }
           EOF
 
+          # === THE DIGITAL PRESSURE WASHER ===
+          # Forcefully strips out hidden keyboard carriage returns (\r) from every file
+          find . -type f -name "*.xml" -exec sed -i 's/\r$//' {} \;
+          find . -type f -name "*.gradle" -exec sed -i 's/\r$//' {} \;
+          find . -type f -name "*.properties" -exec sed -i 's/\r$//' {} \;
+          find . -type f -name "*.java" -exec sed -i 's/\r$//' {} \;
+
       - name: Set up Java JDK 17
         uses: actions/setup-java@v4
         with:
@@ -124,7 +129,7 @@ jobs:
 
       - name: Compile and Assemble Debug APK
         run: |
-          # Use the standalone builder engine to compile your code 
+          # The clean, sterile text layout files will now compile flawlessly
           gradle assembleDebug
 
       - name: Upload Finished APK File
