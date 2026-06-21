@@ -22,16 +22,45 @@ jobs:
 
       - name: Reconstruct Native Android File Trees
         run: |
-          # Create strict target folders
+          # 1. Create strict target system directory folders
           mkdir -p app/src/main/java/org/heartive/skullbrowser
           mkdir -p app/src/main/res/layout
 
-          # Search dynamically inside the unpacked zip folders for your files
+          # 2. Search dynamically inside the unpacked zip folders and move files
           find project_unpacked/ -name "MainActivity.java" -exec mv {} app/src/main/java/org/heartive/skullbrowser/ \; || true
           find project_unpacked/ -name "MyWebViewClient.java" -exec mv {} app/src/main/java/org/heartive/skullbrowser/ \; || true
           find project_unpacked/ -name "SkullVpnService.java" -exec mv {} app/src/main/java/org/heartive/skullbrowser/ \; || true
           find project_unpacked/ -name "activity_main.xml" -exec mv {} app/src/main/res/layout/ \; || true
           find project_unpacked/ -name "AndroidManifest.xml" -exec mv {} app/src/main/ \; || true
+
+          # 3. Create settings.gradle automatically on the runner to bypass file errors
+          echo "include ':app'" > settings.gradle
+
+          # 4. Generate build.gradle automatically to avoid workspace root conflicts
+          cat << 'EOF' > build.gradle
+          plugins {
+              id 'com.android.application' version '8.2.2' apply false
+          }
+          EOF
+
+          # 5. Generate app module build configuration
+          mkdir -p app
+          cat << 'EOF' > app/build.gradle
+          plugins {
+              id 'com.android.application'
+          }
+          android {
+              namespace 'org.heartive.skullbrowser'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "org.heartive.skullbrowser"
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+          }
+          EOF
 
       - name: Set up Java JDK 17
         uses: actions/setup-java@v4
