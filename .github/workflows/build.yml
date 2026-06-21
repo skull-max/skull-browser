@@ -5,7 +5,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      # Fixes the Node.js version alert error instantly
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout Code
@@ -16,24 +15,22 @@ jobs:
           mkdir -p project_unpacked
           if ls *.zip 1> /dev/null 2>&1; then
             unzip -o *.zip -d project_unpacked
-            echo "Zip elements extracted into temporary worker folder."
+            echo "Zip elements extracted successfully."
           else
-            echo "No zip package detected in root directory."
+            echo "No zip package detected."
           fi
 
       - name: Reconstruct Native Android File Trees
         run: |
-          # Create strict, sterile system directory folders
+          # Create strict target folders
           mkdir -p app/src/main/java/org/heartive/skullbrowser
           mkdir -p app/src/main/res/layout
 
-          # Move your unpacked Java files into their proper package destination directory
-          find project_unpacked/ -name "*.java" -exec mv {} app/src/main/java/org/heartive/skullbrowser/ \; || true
-          
-          # Move your XML interface files into the core resource layout directory
+          # Search dynamically inside the unpacked zip folders for your files
+          find project_unpacked/ -name "MainActivity.java" -exec mv {} app/src/main/java/org/heartive/skullbrowser/ \; || true
+          find project_unpacked/ -name "MyWebViewClient.java" -exec mv {} app/src/main/java/org/heartive/skullbrowser/ \; || true
+          find project_unpacked/ -name "SkullVpnService.java" -exec mv {} app/src/main/java/org/heartive/skullbrowser/ \; || true
           find project_unpacked/ -name "activity_main.xml" -exec mv {} app/src/main/res/layout/ \; || true
-          
-          # Move your main system blueprint registration file into the root main folder
           find project_unpacked/ -name "AndroidManifest.xml" -exec mv {} app/src/main/ \; || true
 
       - name: Set up Java JDK 17
@@ -42,14 +39,9 @@ jobs:
           java-version: '17'
           distribution: 'zulu'
 
-      - name: Initialize Android Command Tooling
-        run: |
-          # Download and establish a lightweight background compilation engine wrapper
-          gradle help
-
       - name: Compile and Assemble Debug APK
         run: |
-          # Execute the core compiler build engine routine over the project tree
+          # Use the pre-installed system Gradle engine to build your code 
           gradle assembleDebug
 
       - name: Upload Finished APK File
