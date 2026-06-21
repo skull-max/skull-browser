@@ -26,23 +26,60 @@ jobs:
           mkdir -p app/src/main/java/org/heartive/skullbrowser
           mkdir -p app/src/main/res/layout
 
-          # 2. Dynamically search inside your unzipped folders for your files and place them correctly
+          # 2. Dynamically search inside your unzipped folders for your Java and layout files
           find project_unpacked/ -name "MainActivity.java" -exec cp {} app/src/main/java/org/heartive/skullbrowser/ \; || true
           find project_unpacked/ -name "MyWebViewClient.java" -exec cp {} app/src/main/java/org/heartive/skullbrowser/ \; || true
           find project_unpacked/ -name "SkullVpnService.java" -exec cp {} app/src/main/java/org/heartive/skullbrowser/ \; || true
           find project_unpacked/ -name "activity_main.xml" -exec cp {} app/src/main/res/layout/ \; || true
-          find project_unpacked/ -name "AndroidManifest.xml" -exec cp {} app/src/main/ \; || true
 
-          # 3. Create missing settings control script
+          # 3. FIXED MANIFEST ENGINE: Overwrites and forces a sterile, perfectly-mapped blueprint file
+          cat << 'EOF' > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://android.com"
+              package="org.heartive.skullbrowser">
+
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+              <application
+                  android:allowBackup="true"
+                  android:label="Skull Browser"
+                  android:supportsRtl="true"
+                  android:theme="@style/Theme.AppCompat.NoActionBar">
+
+                  <activity 
+                      android:name="org.heartive.skullbrowser.MainActivity"
+                      android:exported="true"
+                      android:configChanges="orientation|screenSize|keyboardHidden">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+
+                  <service 
+                      android:name="org.heartive.skullbrowser.SkullVpnService"
+                      android:permission="android.permission.BIND_VPN_SERVICE"
+                      android:exported="false">
+                      <intent-filter>
+                          <action android:name="android.net.VpnService"/>
+                      </intent-filter>
+                  </service>
+
+              </application>
+          </manifest>
+          EOF
+
+          # 4. Create missing settings control script
           echo "include ':app'" > settings.gradle
 
-          # 4. Generate the configuration flags to activate AndroidX compatibility mapping
+          # 5. Generate the configuration flags to activate AndroidX compatibility mapping
           cat << 'EOF' > gradle.properties
           android.useAndroidX=true
           android.enableJetifier=true
           EOF
 
-          # 5. Generate master gradle build file
+          # 6. Generate master gradle build file
           cat << 'EOF' > build.gradle
           buildscript {
               repositories {
@@ -61,7 +98,7 @@ jobs:
           }
           EOF
 
-          # 6. Generate app module build script layout configuration
+          # 7. Generate app module build script layout configuration
           cat << 'EOF' > app/build.gradle
           apply plugin: 'com.android.application'
           android {
@@ -95,5 +132,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Skull-Browser-Installer
-          # FIXED PATH: Tells the runner to find the built file anywhere in the workspace outputs
           path: "**/build/outputs/apk/debug/*.apk"
